@@ -19,15 +19,15 @@ Temperature management is included in Waft Core, whereas Waft Pro adds segment d
 
 ## Schematics and Prototype
 <p float="left">
-<img height="600" alt="waft pro schem" src="https://user-images.githubusercontent.com/89692776/209439701-dd69c209-35fc-4c6e-aeac-d9f94065a8c3.png">
-<img height="600" alt="waft core schem" src="https://user-images.githubusercontent.com/89692776/209439695-d29ae2cf-408c-46a7-8980-883b4cd3ae03.png">
+<img height="400" alt="waft pro schem" src="https://user-images.githubusercontent.com/89692776/209439701-dd69c209-35fc-4c6e-aeac-d9f94065a8c3.png">
+<img height="400" alt="waft core schem" src="https://user-images.githubusercontent.com/89692776/209439695-d29ae2cf-408c-46a7-8980-883b4cd3ae03.png">
 </p>
 Fig. Waft Pro schematic (left) and Waft Core schemantic (right)
 <br />
 
 <p float="left">
-<img height="450" alt="waft pro" src="https://user-images.githubusercontent.com/89692776/209439597-b4edb9ab-9784-4cf9-bd0c-3db2465a9e93.jpg">
-<img width="600" alt="waft core" src="https://user-images.githubusercontent.com/89692776/209439602-17c657c0-1594-48c2-b927-524b519b259f.jpg">
+<img height="350" alt="waft pro" src="https://user-images.githubusercontent.com/89692776/209439597-b4edb9ab-9784-4cf9-bd0c-3db2465a9e93.jpg">
+<img width="300" alt="waft core" src="https://user-images.githubusercontent.com/89692776/209439602-17c657c0-1594-48c2-b927-524b519b259f.jpg">
 </p>
 Fig. Waft Pro prototype (left) and Waft Core prototype (right)
 <br />
