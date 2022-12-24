@@ -1,0 +1,376 @@
+esphome:
+  name: waft-pro
+  on_boot:
+    - script.execute: logs
+    - script.execute: sync_airconditioner
+    - script.execute: sync_fan
+
+esp32:
+  board: nodemcu-32s
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+web_server:
+  port: 80
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "WO78t7ZS3aJkck0pM0S/WgGQ7EDeHFvFtYZf2uvk7qU="
+
+ota:
+  password: "19044ddc3eded1baba1e61983df9b823"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Waft-Pro Fallback Hotspot"
+    password: "IWgOwXNYRXy1"
+
+captive_portal:
+    
+    
+globals:
+  - id: T_Waft_display
+    type: float
+    restore_value: no
+    initial_value: '24'
+
+  - id: S_Waft_display
+    type: int
+    restore_value: no
+    initial_value: '3'
+
+  - id: T_RA_difference
+    type: float
+    restore_value: no
+    initial_value: '0'
+
+  - id: k_awa
+    type: float
+    restore_value: no
+    initial_value: '0.523'
+
+  - id: SF_final_380
+    type: float
+    restore_value: no
+    initial_value: '1.81'
+  - id: SF_final_320
+    type: float
+    restore_value: no
+    initial_value: '1.52'
+  - id: SF_final_285
+    type: float
+    restore_value: no
+    initial_value: '1.35'
+  - id: SF_final_230
+    type: float
+    restore_value: no
+    initial_value: '1.09'
+  - id: SF_final_175
+    type: float
+    restore_value: no
+    initial_value: '0.83'
+  - id: SF_final_120
+    type: float
+    restore_value: no
+    initial_value: '0.57'
+
+  - id: T_peak_error
+    type: int
+    restore_value: no
+    initial_value: '2'
+
+  - id: k_power_save
+    type: int
+    restore_value: no
+    initial_value: '1'
+
+  - id: k_apparent
+    type: float
+    restore_value: no
+    initial_value: '3.25'
+
+  - id: t_status
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: t_duration
+    type: int
+    restore_value: no
+    initial_value: '6' 
+
+  - id: t_T
+    type: int
+    restore_value: no
+    initial_value: '27' 
+
+script:
+  - id: sync_airconditioner
+    mode: restart
+    then:
+      - while:
+          condition:
+            script.is_running: sync_airconditioner
+          then:
+            - globals.set:
+                id: k_apparent
+                value: !lambda "return (((((35 - id(temperature).state) * 0.267) * (id(SF_final_380)))-(id(T_peak_error))) * (id(k_power_save)));"
+            - climate.control:
+                id: ambience
+                mode: HEAT_COOL
+                target_temperature: !lambda "return (id(T_Waft_display) + (id(k_apparent)));"
+            - delay: 5s
+  - id: sync_fan
+    mode: restart
+    then:
+      - while:
+          condition:
+            script.is_running: sync_fan
+          then:
+            - globals.set:
+                id: T_RA_difference
+                value: !lambda "return (id(temperature).state - id(ambience).target_temperature) / id(k_apparent);"
+            - if:
+                condition:
+                  lambda: "return ((-10.0 <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_120)));"
+                then:
+                  - logger.log: "0" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CF8976
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "0"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_120) <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_175)));"
+                then:
+                  - logger.log: "1" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CFD12E
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "1"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_175) <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_230)));"
+                then:
+                  - logger.log: "2" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CF09F6
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "2"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_230) <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_285)));"
+                then:
+                  - logger.log: "3" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CF51AE
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "3"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_285) <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_320)));"
+                then:
+                  - logger.log: "4" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CFC936
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "4"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_320) <= id(T_RA_difference)) && (id(T_RA_difference) < id(SF_final_380)));"
+                then:
+                  - logger.log: "5" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CF11EE
+                      nbits: 32
+                  - remote_transmitter.transmit_pronto:
+                      data: "0000 006D 0022 0000 015B 00AD 0015 0016 0015 0016 0015 0016 0015 0016 0015 0016 0015 0016 0015 0016 0015 0016 0015 0041 0015 0041 0015 0016 0015 0016 0016 0040 0015 0041 0015 0041 0015 0041 0015 0016 0015 0016 0015 0016 0015 0041 0015 0016 0015 0016 0016 0015 0015 0041 0015 0041 0016 0040 0015 0041 0015 0016 0015 0041 0015 0041 0015 0041 0015 0016 0015 06C3"
+                  - remote_transmitter.transmit_pronto:
+                      data: "0000 006D 0002 0000 015A 0057 0015 06C3"
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "5"
+            - if:
+                condition:
+                  lambda: "return ((id(SF_final_380) <= id(T_RA_difference)) && (id(T_RA_difference) < 10));"
+                then:
+                  - logger.log: "6" ###
+                  - remote_transmitter.transmit_lg:
+                      data: 0x00CFF10E
+                      nbits: 32
+                  - globals.set:
+                      id: S_Waft_display
+                      value: "6"
+            - delay: 5s
+  - id: timer
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: return id(t_status) = true;
+          then:
+            - lambda: |-
+                int stat_T = id(temperature).state;
+                int time_left = id(t_duration);
+                float slope = (float) id(t_T) / id(t_duration);
+                while (time_left) {
+                  id(T_Waft_display) = (int) (slope * time_left) + stat_T;
+                  time_left--;
+                  sleep(3600*time_left);
+                }
+            - delay: 5s
+  - id: logs
+    mode: restart
+    then:
+      - while:
+          condition:
+            script.is_running: logs
+          then:
+            - delay: 5s
+            - logger.log:
+                format: "waft t is %.1f,  waft s is %i, waft ra is  %.1f, waft k appa is  %.6f, "
+                args: [ 'id(T_Waft_display)', 'id(S_Waft_display)', 'id(T_RA_difference)', 'id(k_apparent)' ]
+  
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO12
+    name: "Motion Sensor"
+    id: motion
+    device_class: motion
+
+light:
+  - platform: rgb
+    name: "RGB Light"
+    id: rgb_light
+    red: rpin
+    green: gpin
+    blue: bpin
+
+# Example output entry
+output:
+  - platform: ledc
+    id: rpin
+    pin: GPIO10
+  - platform: ledc
+    id: gpin
+    pin: GPIO9
+  - platform: ledc
+    id: bpin
+    pin: GPIO13
+  - platform: ledc
+    pin: 
+      number: GPIO33
+      inverted: True
+    id: rtttl_buzzer
+
+display:
+    platform: tm1637
+    id: tm1637_display
+    clk_pin: GPIO14
+    dio_pin: GPIO27
+    inverted: true
+    intensity: 0
+    length: 4
+    lambda: |-
+      it.printf("%2.0f%2.0f", id(T_Waft_display), id(temperature).state);
+      
+i2c:
+  scl: GPIO26
+  sda: GPIO25
+  scan: True
+  id: i2c_htu21d
+
+sensor:
+  - platform: htu21d
+    i2c_id: i2c_htu21d
+    temperature:
+      name: "Temperature"
+      id: temperature
+    humidity:
+      name: "Humidity"
+      id: humidity
+    update_interval: 5s
+  - platform: resistance
+    sensor: brightness
+    configuration: UPSTREAM
+    resistor: 4.7kOhm
+    name: "Brightness"
+  - platform: adc
+    id: brightness
+    pin: GPIO35
+    update_interval: 5s
+
+
+rtttl:
+  output: rtttl_buzzer
+
+climate:
+  - platform: climate_ir_lg
+    id: ambience
+    name: "Air Conditioner"
+    sensor: temperature
+    receiver_id: receiver
+    transmitter_id: transmitter
+    supports_heat: False
+    supports_cool: True
+
+remote_receiver:
+  id: receiver
+  pin:
+    number: GPIO23
+    inverted: true
+    mode:
+      input: true
+      pullup: true
+  tolerance: 55%
+  dump: all
+
+
+remote_transmitter:
+  id: transmitter
+  pin:
+    number: GPIO32
+    inverted: true
+  carrier_duty_percent: 50%
+
+switch:
+  - platform: template
+    name: "Play"
+    id: esp32_playy
+    turn_on_action:
+      rtttl.play: 'RickRoll:d=4,o=5,b=200:8g,8a,8c6,8a,e6,8p,e6,8p,d6.,p,8p,8g,8a,8c6,8a,d6,8p,d6,8p,c6,8b,a.,8g,8a,8c6,8a,2c6,d6,b,a,g.,8p,g,2d6,2c6.,p,8g,8a,8c6,8a,e6,8p,e6,8p,d6.,p,8p,8g,8a,8c6,8a,2g6,b,c6.,8b,a,8g,8a,8c6,8a,2c6,d6,b,a,g.,8p,g,2d6,2c6'
+  - platform: template
+    name: "Waft dec"
+    id: waft_T_minus
+    turn_on_action:
+      then:
+        - globals.set:
+            id: T_Waft_display
+            value: !lambda "return (id(T_Waft_display) - 1);"
+  - platform: template
+    name: "Waft inc"
+    id: waft_T_plus
+    turn_on_action:
+      then:
+        - globals.set:
+            id: T_Waft_display
+            value: !lambda "return (id(T_Waft_display) + 1);"
